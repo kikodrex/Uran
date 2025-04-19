@@ -1,0 +1,53 @@
+import requests
+from bs4 import BeautifulSoup
+import time
+
+class WebScraper:
+    def __init__(self, url):
+        self.url = url
+        self.processed_items = set()
+        
+    def fetch_page(self):
+        try:
+            response = requests.get(self.url, timeout=10)
+            response.raise_for_status()  # Raise error for bad status
+            return response.text
+        except requests.RequestException as e:
+            print(f"Error fetching page: {e}")
+            return None
+
+    def parse_and_act(self, html):
+        soup = BeautifulSoup(html, 'html.parser')
+        
+        # Example: Extract all links and print them
+        links = soup.find_all('a', href=True)
+        for link in links:
+            if link['href'] not in self.processed_items:
+                print(f"Found new link: {link['href']}")
+                self.processed_items.add(link['href'])
+        
+        # Example: Extract specific elements (modify selector as needed)
+        special_items = soup.select('.uranium-shard')
+        for item in special_items:
+            item_id = item.get('id') or item.text.strip()
+            if item_id not in self.processed_items:
+                print(f"Found target item: {item.text[:50]}...")
+                self.processed_items.add(item_id)
+
+    def run(self, interval=5):
+        """Check for updates periodically"""
+        try:
+            while True:
+                print(f"\nChecking {self.url}...")
+                html = self.fetch_page()
+                if html:
+                    self.parse_and_act(html)
+                time.sleep(interval)
+        except KeyboardInterrupt:
+            print("\nScraper stopped.")
+
+# Usage
+if __name__ == "__main__":
+    target_url = "https://geturanium.io"  # Replace with your target URL
+    scraper = WebScraper(target_url)
+    scraper.run()
